@@ -1,0 +1,9 @@
+{
+    "path" : "~/andsport",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

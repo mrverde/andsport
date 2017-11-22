@@ -1,0 +1,301 @@
+---
+title: "Introduccion a GIT"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ¿Qué es GIT?
+
+Git es un sistema de control de versiones creado por Linus Torvalds. Nos registra los cambios registrado en un archivo o conjunto de archivos a lo largo del tiempo. A medida que vamos desarrollando versiones nuevas de nuestro proyecto, éstas se van registrando, y podemos revisitarlas. 
+
+Git sirve también para organizar los archivos de nuestro proyecto a través de los commit. 
+
+Un elemento fundamental de GIT es lo que se conoce como los 3 estados. Un proyecto puede estar en tres estados diferentes:
+
+*Puede ser nuestro directorio de trabajo
+
+*Puede ser staging area. Que es donde escogemos ponemos los archivos que pueden estar listos para pasar al tercer estado. 
+
+*Por último tenemos el repositorio, que es donde queda registro de todo lo que hemos hecho en el proyecto. 
+
+Por tanto, el flujo de trabajo será:
+
+1. Modificar, crear y editar una serie de archivos.
+2. Escoger los archivos que están listos.
+3. Registrar el proyecto.
+
+
+## Primeros pasos: Instalación y configuración
+
+GIT puede instalarse en Linux, Windows o Mac. Lo descargamos desde la web de git. 
+
+En linux se instala con el comando:
+
+```{bash git_1, eval=F}
+sudo apt-get install git
+```
+
+GIT se maneja desde la línea de comandos. Entonces, para establecer nuestro nombre de usuario, correo, etc, usamos:
+
+```{bash git2, eval=F}
+git config --global user.name "Mi_username"
+git config --global user.email "Mi_email"
+```
+
+Si usamos los comandos anteriores sin las comillas, nos devuelve el usuario e email.
+
+Si queremos establecer colores en GIT usamos el siguiente comando:
+
+```{bash git3, eval=F}
+git config --global color.ui true
+```
+
+Para ver nuestra configuración suamos el siguiente comando:
+
+```{bash git4, eval=F}
+git config --global --list
+```
+
+## Comandos básicos
+
+Para iniciar un proyecto en GIT usamos:
+
+```{bash git4b, eval=F}
+git init
+```
+
+Este comando únicamente hay que usarlo una vez, cuando iniciemos el proyecto.
+  
+Para ver el status de nuestro proyecto usamos:
+
+```{bash git5, eval=F}
+git status
+```
+
+Para agregar los archivos que tengamos en la carpeta donde iniciamos git al proyecto usamos:
+
+```{bash git6, eval=F}
+git add Nombre.del.archivo
+
+#Para agregar todos los archivos usamos
+git add -A
+```
+
+Para registrar un mensaje con los cambios que hicimos usamos:
+
+```{bash git7, eval=F}
+git commit -m "Mensaje"
+```
+
+Si queremos cambiar alguno de los mensajes que hagamos enviado al commit usamos:
+
+```{bash git7bis, eval=F}
+git commit --amend -m "Mensaje cambiado"
+```
+
+Y para obtener el registro de todos los cambios (commits) que hemos usado:
+
+```{bash git8, eval=F}
+git log
+git log > Nombrearchivo.txt # Genera el log en un txt
+```
+
+Para restaurar versiones anteriores utilizamos:
+```{bash git9, eval=F}
+git checkout codigo_sha_de_la_version
+```
+
+Otro comando para viajar a versiones anteriores es reset, pero cuidado, este comando tiene la particularidad de que borra las versiones posteriores a la versión restaurada.
+
+```{bash git10, eval=F}
+git reset --hard codigo_sha #Borra todo lo que hay en el commit
+git reset --soft #No toca el working area (codigo), solo borra las versiones
+git reset --mixed #Borra el Staging area sin tocar el working area
+```
+
+Para consultar la ayuda podemos usar
+
+```{bash git11, eval=F}
+git help #Ayuda general
+git help status #Para elementos individuales
+```
+
+## Ramas y fusiones
+Hay un concepto fundamental para trabajar con las ramas y fusiones y es el concepto head. El head es el commit en el que nos encontramos.
+
+##### Ramas
+Una rama es una línea de tiempo en nuestro proyecto. sirven para arreglar errores, experimentar, hacer grandes cambios, etc... La rama master es la rama principal, es decir, donde comenzamos a trabajar. Es la rama estable de nuestro proyecto. 
+
+Para ver las ramas de nuestro proyecto usamos el comando:
+```{bash git12, eval=F}
+git branch
+```
+
+Para crear una nueva rama simplemente utilizamos el comando branch con el nombre de la rama. Para movernos entre ramas usamos al igual que antes,  el comando checkout. Para borrarlas se usa -D. 
+
+```{bash git13, eval=F}
+git branch
+git branch Nombre_rama
+git checkout Nombre_rama
+git branch -D Nombre_rama
+```
+
+##### Fusiones
+Ahora nos encontramos que queremos incorporar los cambios de la rama secundaria que hemos creado a la rama primaria. Para ello, vamos a usar las fusión de ramas. Una fusión es la creación de un nuevo commit juntando una rama con la otra. Para fusionar usamos el comando merge. Tendremos que situarnos en la rama principal e indicarle el nombre de la rama que va a ser absorbida.
+
+```{bash git14, eval=F}
+git chekout Nombre_rama
+git chekout -b Nombre_rama #Con esto creamos una rama y nos movemos a ella
+```
+
+Al hacer la fusión pueden pasar dos cosas: puede ser fast-forward, que es un proceso simple y automático; o puede ser manual merge, que es un proceso largo y manual que suele darse cuando trabajamos en equipo. 
+
+## GITHUB
+GIT y Github no son lo mismo. Github es una plataforma donde podemos guardar nuestro proyectos, usando git para su gestión.
+
+El siguiente comando que vamos a ver es git clone. Este se usa cuando estamos intereados en colaborar con un proyecto.
+
+```{bash git15, eval=F}
+git clone direccion.del.proyecto
+```
+
+Vamos ahora a subir nuestro proyecto a Github. En lo que se refiere a repositorios, podemos diferenciar dos tipos: repositorios remotos y repositorios locales. El remoto es el que está en internet y el local es el que está en nuestro pc. Para vincular un proyecto local con un repositorio remoto usamos el comando git remote.
+
+```{bash git16, eval=F}
+### Origin es un repositorio
+git remote add origin direccionwebdelrepositorio #Con esto vinculamos
+git remote remove origin direccionwebdelrepositorio #Con esto desvinculamos
+```
+
+Para mandar nuestros cambios a github usamos push
+```{bash git17, eval=F}
+git push origin rama.que.queremos.enviar
+```
+
+Si hemos cambiado la descripcion de un commit, para actualizar usamos:
+
+```{bash git18, eval=F}
+git push origin master -f
+```
+
+##### Issues y Milestones
+Los issues (o problemas) son una forma de continuar, mejorar o solucionar un error en nuestros repositorios. Se introducen en la pestaña issue.
+
+Los milestones son grupos de issues que se aplican para un proyecto, característica o período de tiempo. Sirve para crear conjuntos con los issues. Se agrega en la pestaña issue.
+
+Por último tenemos las etiquetas o labels. Que sirven para clasificar los issues. 
+
+
+## GIT Tags
+Los tags son puntos específicos en la historia de nuestro proyecto y se usan para marcar una versión del mismo. En la práctica es darle a un commit un número de versión determinado. Es opcional incluir el codigo sha del commit, de esta manera añadiríamos el tags a determinados commits. Para crear un tag usamos:
+
+```{bash git19, eval=F}
+git tag -a v1.0 -m codigo.sha "Mensaje" #Tag anotada
+git tag v1.0 codigo.sha #Tag ligera con menos información
+git push origin --tags #Para subir todos los tags
+```
+
+
+## Workflows
+Un workflow es un flujo de trabajo. En git los proyectos pueden ser:
+
+*Propios - Somos los dueños del proyecto y decidimos todo lo que pasa en el repositorio
+
+*En equipo - Trabajamos con mas personas. Otras personas pueden introducir cambios en el repositorio.
+
+Para poder trabajar en equipo es necesario pertenecer a una organización. Estas se crean en github, desde el menú que se crea al pulsar nuestro avatar en la esquina superior derecha de la web.
+
+Para trabajar en el repositorio entre varios es necesario transferirlo a la organización desde los settings. 
+
+Cuando trabajamos en grupo, además de las ramas que creemos, se crea una rama oculta que va recogiendo todas las modificaciones que hagamos al repositorio. La rama oculta puede consultarse usando el comando
+
+```{bash git20, eval=F}
+git branch -a
+```
+
+Para subir las modificaciones que hagamos a la rama oculta usamos el comando fetch.
+
+```{bash git21, eval=F}
+git fetch origin
+```
+
+Después, usamos el comando merge, de esta manera todos los usuarios que pertenezcan a la organización tendrán en su repositorio las modificaciones.
+
+```{bash git22, eval=F}
+git merge origin/master
+```
+
+Hay también un comando que equivale a hacer fetch + merge a la vez. Es pull
+```{bash git22b, eval=F}
+git pull origin
+```
+
+Por último, recordar que para actualizar el repositorio usamos el comando push
+
+```{bash git23, eval=F}
+git push origin master
+```
+
+*Proyectos con terceros - Es el último tipo de proyecto. En éste nosotros no somos dueños ni colaboradores, pero queremos participar en el proyecto. En este caso 
+
+## Github Pages
+Con Github Pages podemos generar un sitio web a partir de nuestro proyecto. Es muy util para portfolios, blog, etc...
+
+Para empezar a hacerlo tenemos que crear un repositorio que se llame: __nombre_usuario.github.io__. 
+
+## Deployment con GIT
+
+En este punto lo que vamos a ver es como hacer que al subir los archivos a nuestro repositorio se suban también a nuestro servidor. Para entrar vamos a necesitar la clave SSH. El SSH nos permite conectarnos al servidor y permanecer conectados. Para habilitar la conexión SSH es necesario crear una clave pública y privada de nuestro GITHUB. Para ello usamos
+
+```{bash git24, eval=F}
+ssh-keygen
+```
+
+Este comando crea una carpeta oculta llamada .ssh. Dentro de ella tenemos la clave pública y privada. La clave privada es el archivo id_rsa y la pública id_rsa.pub. Entonces, cogemos la clave pública, nos vamos a github a SSH keys y ponemos la clave generada y con ello podemos usar el SSH. Para ello nos vamos a nuestro repositorio, copiamos la dirección ssh y ejecutamos
+
+```{bash git25, eval=F}
+git remote add origin codigo.ssh.generado
+```
+
+El señor del video tiene su web alojada en digitalocean. Después, para conectarse por SSH usamos el siguiente comando:
+
+```{bash git26, eval=F}
+ssh cuenta.usuario@dominio.com
+```
+
+La carpeta donde se envian los temas es /var/www/ghost/content/themes . En el servidor también hay que generar una clave ssh para poder conectar el servidor también a github. También se hace con el comando ssh-keys. Hay que instalar también git en el servidor. 
+
+## GIT Hooks
+Los hooks son mecanismos que activan scripts siempre y cuando sucedan determinadas acciones. Hay 17 hooks diferentes:
+
+*applypatch-msg
+*pre-applypatch
+*post-applypatch
+*pre-commit
+*prepare-commit-msg
+*commit-msg
+*post-commit
+*pre-rebase
+*post-checkout
+*post-merge
+*pre-receive
+*update
+*post-receive
+*post-update
+*pre-auto-gc
+*post-rewrite
+*pre-push
+
+Con esto podemos automatizar por ejemplo el que git suba automaticamente los scripts al servidor. 
+
+Para editar estos hooks usamos el comando touch.
+
+```{bash git27, eval=F}
+touch post-commit
+```
+

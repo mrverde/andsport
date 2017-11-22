@@ -1,0 +1,160 @@
+#Librerías
+library(dplyr)
+library(maptools)
+library(maps)
+library(rgdal)
+library(sf)
+library(RColorBrewer)
+library(classInt)
+
+########### CARGANDO LOS DATOS ###########
+#Linux
+#setwd(file.path("/", "media", "usuario", "Mula", "Programacion", "Python", "Proyecto entidades deportivas"))
+
+#Windows
+setwd(file.path("D:", "Programacion", "Python", "Proyecto entidades deportivas"))
+
+#Cargamos los datos
+datos <- read.csv("BD_entidades_definitiva_enc.csv", header = T, sep=",", encoding="latin1")
+datos_pueblos <- read.csv("BD_pueblos_pob.csv", header = T, sep=",", dec = ".",  encoding="latin1")
+datos_pueblos_vars <- read.csv("BD_pueblos_muchas_vars.csv", header = T, sep=";", dec=",", stringsAsFactors = FALSE,  encoding="latin1")
+datos_inst <- read.csv("BD_instalaciones_deportivas_con_codigos.csv", header = T, sep=";")
+
+
+##Establecemos tipos de variables y añadimos 0 a las variables código
+#Datos entidades deportivas
+datos$NumeroInscripcion <- sprintf("%06d", datos$NumeroInscripcion)
+datos$COD_MUN <- sprintf("%05d", datos$COD_MUN)
+datos$CPRO <- sprintf("%02d", datos$CPRO)
+datos$CMUN <- sprintf("%03d", datos$CMUN)
+datos_inst$CMUN <- sprintf("%05d", datos_inst$CMUN)
+datos_inst$CPRO <- sprintf("%02d", datos_inst$CPRO)
+
+
+#Datos pueblos
+datos_pueblos$COD_MUN <- sprintf("%05d", datos_pueblos$COD_MUN)
+datos_pueblos_vars$COD_MUN <- sprintf("%05d", datos_pueblos_vars$COD_MUN)
+
+
+#Establecemos las variables de tipo TS
+Sys.setlocale("LC_TIME", "es_ES.UTF-8") #Establece la zona horaria en España para poder trabajar bien con fechas (para linux)
+#Sys.setlocale("LC_TIME", "Spanish") #Establece la zona horaria en España para poder trabajar bien con fechas (para windows)
+
+datos$Fechainscripcion <- strptime(datos$Fechainscripcion, format = "%d/%m/%Y") #Convierte los datos de hora en una variable POSIXlt (fecha y hora)
+datos$Fechainscripcion <- as.Date(datos$Fechainscripcion)
+datos$Fechamodificacionestatuto <- strptime(datos$Fechamodificacionestatuto, format = "%d/%m/%Y") #Convierte los datos de hora en una variable POSIXlt (fecha y hora)
+datos$Fechamodificacionestatuto <- as.Date(datos$Fechamodificacionestatuto)
+
+ 
+########### CREANDO SUBSETS DE LOS DATOS ###########
+#Recibe el nombre de una variable (colum) y un valor. Devuelve un df
+sub_set <- function(df, colum, val){
+  return (df[df[,colum]==val,])
+}
+
+#Ejemplos de subsets
+subset_caza <- datos %>% sub_set("Deporte", "caza")
+subset_futbol <- datos %>% sub_set("Deporte", "futbol")
+subset_cadiz <- datos %>% sub_set("CPRO", "11")
+subset_cadiz_caza <- datos %>% sub_set("Deporte", "caza") %>% sub_set("CPRO", "11")
+subset_federaciones <- datos %>% sub_set("Entidad", "federacion deportiva")
+
+
+
+########### CREANDO SERIES TEMPORALES ANUALES-MENSUALES  ###########
+#Extrae el nº de asociaciones/mes creadas
+ts_mensual <- function(db){
+              db %>%
+              mutate(date = format(Fechainscripcion, "%Y-%m")) %>%
+              group_by(date) %>% 
+              count(Fechainscripcion) %>% summarise(total=sum(n))
+}
+
+ts_anual <- function(db){
+            db %>%
+            mutate(date = format(Fechainscripcion, "%Y")) %>%
+            group_by(date) %>% 
+            count(Fechainscripcion) %>% summarise(total=sum(n))
+}
+
+#Ejemplos de creacion de TS
+ts_mes_total <- datos %>% ts_mensual
+ts_ano_total <- datos %>% ts_anual
+ts_cadiz_caza <- datos %>% sub_set("Deporte", "caza") %>% sub_set("CPRO", "11") %>% ts_mensual
+
+#Comparando 2 ts
+ts_cadiz_caza <- datos %>% sub_set("Deporte", "caza") %>% sub_set("CPRO", "11") %>% ts_anual
+ts_cadiz_futbol <- datos %>% sub_set("Deporte", "futbol") %>% sub_set("CPRO", "11") %>% ts_anual
+c_ts_cadiz_caza_futbol <- merge(ts_cadiz_futbol, ts_cadiz_caza, by="date", all=T)
+#Convirtiendo los valores a NA's
+c_ts_cadiz_caza_futbol[is.na(c_ts_cadiz_caza_futbol)] <- 0
+#Estableciendo el formato horario
+x = as.POSIXlt.character(paste(c_ts_cadiz_caza_futbol$date,"-01-01",sep=""), format = "%Y-%m-%d", tz="GMT")
+#Dibujando la comparacion
+plot(x, c_ts_cadiz_caza_futbol$total.x, type='l', col="green", main='Inscripciones', xlab='Año', ylab='Nº Total', lwd=2) #Dibuja graficas con los resultados
+lines(x, c_ts_cadiz_caza_futbol$total.y, type='l', col="red", lwd=2) #Dibuja graficas con los resultados
+
+
+########### Mapas ########### 
+#Redefine los parametros para los graficos para que los margenes sean menores
+par(mar=c(0,0,0,0.1))
+
+#Cargamos los mapas
+map_mun <- readOGR("da02_term_munic.shp", encoding = "UTF-8")
+map_prov <- readOGR("da03_provincia.shp", encoding = "UTF-8")
+map_dxt <- readOGR("sv28_equip_deportivo.shp", encoding = "latin-1")
+
+########### Mapas Municipios ########### 
+##Generamos BD's
+muns <- datos %>% group_by(COD_MUN) %>% count(COD_MUN) 
+
+
+plot_model <- function(bd_entrada){
+  plot_mun <- merge(datos_pueblos_vars, bd_entrada, by="COD_MUN", all.x=TRUE)
+  plot_mun[is.na(plot_mun)] <- 0
+  
+  #Establecemos los codigos de los pueblos como nombre de las filas de la BD
+  row.names(plot_mun) <- plot_mun$COD_MUN
+  
+  #Establecemos el código de pueblo como identificador de la forma
+  map_mun <- spChFIDs(map_mun, as.character(map_mun$COD_MUN))
+  
+  #Incluimos los valores de nuestra BD en el mapa
+  map_mun <- SpatialPolygonsDataFrame(map_mun, plot_mun,match.ID=T)
+  
+  # Clasifica a los datos (natural breaks) en diez categorias y encuentra colores
+  colores <- brewer.pal(8, "Greens")
+  int <- classIntervals(map_mun$n, 8, "jenks")
+  breaks <- round(int$brks)
+  colores <- findColours(int, colores)
+  col_leg <- sort(unique(colores), decreasing=T)
+  
+  # Genera el mapa de poblacion y añade la localización de las estaciones de bomberos 
+  bcan <- bbox(map_mun)
+  plot(map_mun, col=colores, border = "black", xlim=bcan[1,], ylim=bcan[2,])
+  #plot(map_dxt, col = "red", pch=19, cex=1, add=T)
+  legend("bottomright", legend = breaks[2:9], fill = col_leg, title = "Poblacion", bg="white") #cex= 1, pt.cex = cex,
+  
+  
+  ###### Regresión Lineal
+  mod <- lm(n ~ POB16+Superficie+spanish_pob+foreign_pob+ANOS_0A14+ANOS_15A64+ANOS_M_65+
+              T_Paro+edad_media+I_CONVEN+I_ATL+I_BEISBOL+I_PETANCA+I_EXPLANADAS+
+              I_FRONTONES+I_FUTBOL+I_GR_PAB+I_HOCKEY+I_PAB+I_PADEL+I_POLIDXT+I_PISCINAS_DXT+
+              I_PISCINAS_PEQ+I_PISCINAS_REC+I_PISCINAS_SALT+I_RUGBY+I_S_CUB+I_SQUASH+I_TENIS+
+              I_CANARIA+IN_CONVEN+IN_AERO+IN_VELOD_BIC+IN_CANAL_ART+IN_CIR_NAT+IN_LAGOS+IN_EQUITA+
+              IN_CUEVAS+IN_ESQUI+IN_GOLF+IN_MOTOR+IN_OTROS+IN_PATINAJ+IN_ROCODROMO+IN_TIRO+
+              INS_C_POLI+INS_POLI+INS_PISCINA+INS_FRONTON+INS_OTROS+INS_TOTAL+N_EMPRESA+
+              N_P_NACIO+N_P_NATU+N_PAR_NATU+N_RES_NATU+N_RES_NATU_CON+N_PARQ_PER+N_MON_NATU+
+            N_P_PROT+POR_P_NACIO+POR_P_NATU+POR_PAR_NATU+POR_RES_NATU+POR_RES_NATU_CON+
+              POR_PARQ_PER+POR_MON_NATU+POR_P_PROT, data = plot_mun)
+  
+  summary(mod)
+  
+}
+
+
+bd_deporte <- datos %>% sub_set("Deporte", "kick boxing") %>% group_by(COD_MUN) %>% count(COD_MUN) 
+plot_model(bd_deporte)
+sort(table(datos$Deporte))
+
+lapply(datos_pueblos_vars[,(3:71)], as.double)
